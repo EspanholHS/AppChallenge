@@ -1,9 +1,11 @@
+// lib/pages/points_page.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
 import '../widgets/touch_animated_button.dart';
+import '../services/points_storage.dart';
 
 class PointsPage extends StatefulWidget {
   const PointsPage({Key? key}) : super(key: key);
@@ -29,8 +31,7 @@ class RewardTier {
 }
 
 class _PointsPageState extends State<PointsPage> {
-  int currentPoints = 280;
-
+  int currentPoints = 0;
   late final List<RewardTier> rewards;
 
   @override
@@ -58,11 +59,17 @@ class _PointsPageState extends State<PointsPage> {
       RewardTier(
         name: 'Prêmio Premium',
         cost: 1000,
-        description:
-            'Evento exclusivo, almoço com liderança ou 1 dia de folga.',
+        description: 'Evento exclusivo, almoço com liderança ou 1 dia de folga.',
         icon: Icons.emoji_events_outlined,
       ),
     ];
+    _loadPoints();
+  }
+
+  Future<void> _loadPoints() async {
+    final value = await PointsStorage.getPoints();
+    if (!mounted) return;
+    setState(() => currentPoints = value);
   }
 
   void _onTapNav(int idx) {
@@ -86,7 +93,7 @@ class _PointsPageState extends State<PointsPage> {
     for (final r in rewards) {
       if (currentPoints < r.cost) return r.cost;
     }
-    return null; // já passou de todas as faixas
+    return null;
   }
 
   double _progressToNextTier() {
@@ -136,8 +143,7 @@ class _PointsPageState extends State<PointsPage> {
               Text(
                 'Resgatar "${tier.name}"?',
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -147,12 +153,13 @@ class _PointsPageState extends State<PointsPage> {
               const SizedBox(height: 16),
               TouchAnimatedButton(
                 label: 'CONFIRMAR RESGATE',
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(ctx);
                   setState(() {
-                    currentPoints -= tier.cost;
+                    currentPoints = max(0, currentPoints - tier.cost);
                     tier.claimed = true;
                   });
+                  await PointsStorage.setPoints(currentPoints);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Você resgatou: ${tier.name}!'),
@@ -195,7 +202,6 @@ class _PointsPageState extends State<PointsPage> {
           ),
           const SizedBox(height: 24),
 
-          // Título
           const Text(
             'Pontuação',
             style: TextStyle(
@@ -211,12 +217,9 @@ class _PointsPageState extends State<PointsPage> {
           ),
           const SizedBox(height: 20),
 
-          // Cartão com contador animado de pontos
           _PointsCounterCard(points: currentPoints),
-
           const SizedBox(height: 16),
 
-          // Progresso até a próxima recompensa
           if (next != null)
             _ProgressToNextTier(
               current: currentPoints,
@@ -228,7 +231,6 @@ class _PointsPageState extends State<PointsPage> {
 
           const SizedBox(height: 24),
 
-          // Lista de recompensas
           const Text(
             'Recompensas disponíveis',
             style: TextStyle(
@@ -351,8 +353,8 @@ class _ProgressToNextTier extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Próxima recompensa',
-              style: TextStyle(
-                  color: Colors.black54, fontWeight: FontWeight.w600)),
+              style:
+                  TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -363,8 +365,8 @@ class _ProgressToNextTier extends StatelessWidget {
                     value: progress.clamp(0, 1),
                     minHeight: 10,
                     backgroundColor: Colors.black12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      const Color(0xFF4DB6FF),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF4DB6FF),
                     ),
                   ),
                 ),
@@ -379,7 +381,8 @@ class _ProgressToNextTier extends StatelessWidget {
                 ? 'Pronto para resgatar!'
                 : 'Faltam $remaining pontos',
             style: TextStyle(
-              color: remaining == 0 ? const Color(0xFF1877F2) : Colors.black54,
+              color:
+                  remaining == 0 ? const Color(0xFF1877F2) : Colors.black54,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -413,7 +416,6 @@ class _AllTiersCompletedCard extends StatelessWidget {
   }
 }
 
-/// Card de recompensa com "glow" quando elegível e botão de resgatar
 class _RewardCard extends StatefulWidget {
   const _RewardCard({
     Key? key,
@@ -532,8 +534,7 @@ class _ClaimedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF1ABC9C),
         borderRadius: BorderRadius.circular(999),
@@ -543,15 +544,14 @@ class _ClaimedBadge extends StatelessWidget {
           Icon(Icons.check_circle, color: Colors.white, size: 18),
           SizedBox(width: 6),
           Text('Resgatado',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold)),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 }
 
-/// Um “glass card” simples (fica bonito no fundo animado)
 BoxDecoration _glass() {
   return BoxDecoration(
     color: Colors.white.withOpacity(0.92),

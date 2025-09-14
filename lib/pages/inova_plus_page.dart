@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
 import '../widgets/touch_animated_button.dart';
+import '../services/points_storage.dart';
+
 
 class InovaPlusPage extends StatefulWidget {
   const InovaPlusPage({Key? key}) : super(key: key);
@@ -51,7 +53,7 @@ class _InovaPlusPageState extends State<InovaPlusPage> {
           'status': (result['status'] as String?) ?? 'Em análise',
           'date': (result['date'] is DateTime)
               ? result['date'] as DateTime
-              : DateTime.now(), // fallback seguro
+              : DateTime.now(),
         });
       });
     }
@@ -153,7 +155,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 /// --------------------------------------------------------------------------
-/// Card de ideia (hover/scale) — agora com dados dinâmicos
+/// Card de ideia (hover/scale) — dados dinâmicos
 /// --------------------------------------------------------------------------
 class IdeaCard extends StatefulWidget {
   final String title;
@@ -218,8 +220,10 @@ class _IdeaCardState extends State<IdeaCard> {
 }
 
 /// --------------------------------------------------------------------------
-/// Card de pontos (hover/scale)
+/// Card de pontos — agora navega para /points
 /// --------------------------------------------------------------------------
+
+
 class PointsCard extends StatefulWidget {
   const PointsCard({Key? key}) : super(key: key);
   @override
@@ -228,6 +232,19 @@ class PointsCard extends StatefulWidget {
 
 class _PointsCardState extends State<PointsCard> {
   bool _hovering = false;
+  int _points = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPoints();
+  }
+
+  Future<void> _loadPoints() async {
+    final value = await PointsStorage.getPoints();
+    if (!mounted) return;
+    setState(() => _points = value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -254,12 +271,19 @@ class _PointsCardState extends State<PointsCard> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('280', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            Text('$_points',
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
             TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFF1877F2)),
-              child: const Text('resgatar recompensas',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/points');
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF1877F2),
+              ),
+              child: const Text(
+                'resgatar recompensas',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -267,3 +291,4 @@ class _PointsCardState extends State<PointsCard> {
     );
   }
 }
+

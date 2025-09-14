@@ -7,8 +7,16 @@ import 'pages/submit_idea_page.dart';
 import 'pages/qr_code_page.dart';
 import 'pages/points_page.dart';
 import 'pages/explore_page.dart';
+import 'services/points_storage.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Sempre inicia com 280 a cada execução fria do app
+  await PointsStorage.resetOnLaunch();
+
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
