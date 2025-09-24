@@ -1,6 +1,7 @@
 // lib/pages/submit_idea_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:my_flutter_app/widgets/logout_button.dart';
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
 import '../widgets/touch_animated_button.dart';
@@ -97,6 +98,7 @@ class _SubmitIdeaPageState extends State<SubmitIdeaPage> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           automaticallyImplyLeading: true,
+          actions: const [LogoutButton()],
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),

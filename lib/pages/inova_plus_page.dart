@@ -1,6 +1,7 @@
 // lib/pages/inova_plus_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:my_flutter_app/widgets/logout_button.dart';
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
 import '../widgets/touch_animated_button.dart';
@@ -130,14 +131,17 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: const [
         AnimatedLogoImage(height: 40),
+        Spacer(),
+        LogoutButton(),                  // <- novo botão
+        SizedBox(width: 8),
         CircleAvatar(radius: 24, backgroundImage: AssetImage('assets/images/avatar.png')),
       ],
     );
   }
 }
+
 
 /// --------------------------------------------------------------------------
 /// Título de seção

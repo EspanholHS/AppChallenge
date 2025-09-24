@@ -1,8 +1,10 @@
 // lib/pages/explore_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:my_flutter_app/widgets/logout_button.dart';
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
+import '../services/explore_storage.dart';
 
 class ExplorePage extends StatefulWidget {
   const ExplorePage({Key? key}) : super(key: key);
@@ -13,9 +15,12 @@ class ExplorePage extends StatefulWidget {
 
 class Idea {
   Idea({
+    required this.id,
     required this.asset,
     required this.title,
     required this.subtitle,
+    required this.description, // <- NOVO
+    required this.category,    // <- NOVO
     required this.author,
     required this.points,
     required this.likes,
@@ -23,15 +28,38 @@ class Idea {
     this.isLiked = false,
   }) : comments = comments ?? [];
 
+  final String id;
   final String asset;
   final String title;
   final String subtitle;
+  final String description; // <- NOVO
+  final String category;    // <- NOVO
   final String author;
 
   int points;
   int likes;
   bool isLiked;
   final List<String> comments;
+
+  // Persistimos apenas o que muda com a interação do usuário
+  Map<String, dynamic> toPersist() => {
+        'id': id,
+        'likes': likes,
+        'points': points,
+        'isLiked': isLiked,
+        'comments': comments,
+      };
+
+  void applyPersist(Map<String, dynamic> m) {
+    if (m['likes'] is int) likes = m['likes'] as int;
+    if (m['points'] is int) points = m['points'] as int;
+    if (m['isLiked'] is bool) isLiked = m['isLiked'] as bool;
+    if (m['comments'] is List) {
+      comments
+        ..clear()
+        ..addAll((m['comments'] as List).map((e) => e.toString()));
+    }
+  }
 }
 
 class _ExplorePageState extends State<ExplorePage> {
@@ -40,44 +68,171 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   void initState() {
     super.initState();
+    // IDEIAS APROVADAS (sementes) — agora com descrição e categoria
     _ideas = [
       Idea(
+        id: 'robo1',
         asset: 'assets/images/robo1.png',
         title: 'Assistente Robótico para Atendimentos',
         subtitle: 'Auxiliar colaboradores em tarefas diárias',
+        description:
+            'Assistente robótico para suporte em atendimentos internos, triagem de dúvidas comuns e integração com sistemas corporativos.',
+        category: 'Processos',
         author: 'Carlos Oliveira',
         points: 230,
         likes: 25,
         comments: ['Excelente!', 'Isso economiza tempo.'],
       ),
       Idea(
+        id: 'robo2',
         asset: 'assets/images/robo2.png',
         title: 'Laboratório Móvel de Testes',
         subtitle: 'Realizar exames diretamente nas unidades',
+        description:
+            'Unidade móvel equipada para realização de exames de rotina nas unidades, reduzindo deslocamentos e tempo de espera.',
+        category: 'Produtos',
         author: 'Ana Souza',
         points: 180,
         likes: 18,
         comments: ['Muito útil no dia a dia.', 'Top!'],
       ),
       Idea(
+        id: 'robo3',
         asset: 'assets/images/robo3.png',
         title: 'Plataforma de Ideias',
         subtitle: 'Enviar e discutir sugestões de inovação',
+        description:
+            'Portal colaborativo para submissão, discussão e acompanhamento de ideias de inovação por toda a empresa.',
+        category: 'Outros',
         author: 'Lucas Pereira',
         points: 150,
         likes: 20,
         comments: ['Engaja a galera!', 'Vai bombar.'],
       ),
       Idea(
+        id: 'robo4',
         asset: 'assets/images/robo4.png',
         title: 'Linha de Produção Automatizada',
         subtitle: 'Aumentar a eficiência na fábrica',
+        description:
+            'Automação de etapas críticas para elevar a eficiência, reduzir erros e ampliar a rastreabilidade do processo.',
+        category: 'Sustentabilidade',
         author: 'Mariana Carvalho',
         points: 260,
         likes: 34,
         comments: ['Produtividade vai lá em cima.'],
       ),
     ];
+
+    _loadPersist();
+  }
+
+  Future<void> _loadPersist() async {
+    final data = await ExploreStorage.load();
+    if (!mounted) return;
+
+    final byId = {for (final it in _ideas) it.id: it};
+    for (final m in data) {
+      final id = m['id']?.toString();
+      if (id != null && byId.containsKey(id)) {
+        byId[id]!.applyPersist(m);
+      }
+    }
+    setState(() {});
+  }
+
+  Future<void> _savePersist() async {
+    final list = _ideas.map((e) => e.toPersist()).toList();
+    await ExploreStorage.save(list);
+  }
+
+  void _onIdeaChanged() {
+    setState(() {});
+    _savePersist();
+  }
+
+  Future<void> _showDetails(Idea idea) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final bottom = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottom),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 6),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          idea.asset,
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          idea.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(
+                        label: Text(idea.category),
+                        backgroundColor: Colors.black12,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Descrição',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    idea.description,
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _onTapNav(BuildContext context, int idx) {
@@ -92,7 +247,6 @@ class _ExplorePageState extends State<ExplorePage> {
         Navigator.pushReplacementNamed(context, '/points');
         break;
       case 3:
-        // já estamos aqui
         break;
     }
   }
@@ -118,6 +272,9 @@ class _ExplorePageState extends State<ExplorePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
                   AnimatedLogoImage(height: 40),
+                  Spacer(),
+                  LogoutButton(), 
+                  SizedBox(width: 8),
                   CircleAvatar(
                     radius: 24,
                     backgroundImage: AssetImage('assets/images/avatar.png'),
@@ -138,8 +295,9 @@ class _ExplorePageState extends State<ExplorePage> {
             final idea = _ideas[idx - 2];
             return IdeaTile(
               idea: idea,
-              onChanged: () => setState(() {}),
-              pointsPerLike: 5, // ajuste se quiser
+              onChanged: _onIdeaChanged,
+              onOpenDetails: () => _showDetails(idea), // <- NOVO
+              pointsPerLike: 5,
             );
           },
         ),
@@ -166,17 +324,19 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 }
 
-/// Card com like animado, contadores e modal de comentários
+/// Card com like, comentários, pontos e botão de detalhes
 class IdeaTile extends StatefulWidget {
   const IdeaTile({
     Key? key,
     required this.idea,
     required this.onChanged,
+    required this.onOpenDetails, // <- NOVO
     this.pointsPerLike = 5,
   }) : super(key: key);
 
   final Idea idea;
   final VoidCallback onChanged;
+  final VoidCallback onOpenDetails; // <- NOVO
   final int pointsPerLike;
 
   @override
@@ -219,7 +379,6 @@ class _IdeaTileState extends State<IdeaTile>
       }
     });
 
-    // animação do coração
     await _likeCtrl.forward(from: 0);
     await _likeCtrl.reverse();
 
@@ -236,7 +395,6 @@ class _IdeaTileState extends State<IdeaTile>
       ),
       builder: (_) => _CommentsSheet(idea: widget.idea),
     );
-    // quando o modal fecha, pedimos pra rebuildar os contadores
     setState(() {});
     widget.onChanged();
   }
@@ -274,7 +432,7 @@ class _IdeaTileState extends State<IdeaTile>
                   ),
                 ),
               ),
-              // pontos + estrela com leve troca animada
+              // Coluna de pontos
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -292,6 +450,16 @@ class _IdeaTileState extends State<IdeaTile>
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(width: 4),
+              // Botão pequeno de detalhes (abre modal com Título/Descrição/Categoria)
+              IconButton(
+                tooltip: 'Detalhes do projeto',
+                onPressed: widget.onOpenDetails,
+                icon: const Icon(Icons.info_outline, size: 20),
+                padding: EdgeInsets.zero,
+                constraints:
+                    const BoxConstraints.tightFor(width: 36, height: 36),
               ),
             ],
           ),
@@ -312,7 +480,7 @@ class _IdeaTileState extends State<IdeaTile>
               ),
               const Spacer(),
 
-              // botão de like com animação de scale
+              // Like
               GestureDetector(
                 onTap: _toggleLike,
                 child: Row(
@@ -320,9 +488,7 @@ class _IdeaTileState extends State<IdeaTile>
                     ScaleTransition(
                       scale: _scaleAnim,
                       child: Icon(
-                        idea.isLiked
-                            ? Icons.favorite
-                            : Icons.favorite_border,
+                        idea.isLiked ? Icons.favorite : Icons.favorite_border,
                         size: 18,
                         color: idea.isLiked ? Colors.red : Colors.black54,
                       ),
@@ -343,7 +509,7 @@ class _IdeaTileState extends State<IdeaTile>
 
               const SizedBox(width: 16),
 
-              // botão de comentários
+              // Comentários
               InkWell(
                 onTap: _openComments,
                 borderRadius: BorderRadius.circular(6),
@@ -424,7 +590,6 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             ),
             const Divider(height: 24),
 
-            // lista de comentários
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -461,7 +626,6 @@ class _CommentsSheetState extends State<_CommentsSheet> {
               ),
             ),
 
-            // caixa de texto + enviar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Row(

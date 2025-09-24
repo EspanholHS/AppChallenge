@@ -1,5 +1,3 @@
-// lib/pages/login_screen.dart
-
 import 'package:flutter/material.dart';
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
@@ -24,15 +22,25 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  bool get _isAdmin =>
+      _userCtrl.text.trim() == 'admin' && _passCtrl.text == 'admin123';
+
+  bool get _isUser =>
+      _userCtrl.text.trim() == 'usuario' && _passCtrl.text == 'senha123';
+
   Future<void> _attemptLogin() async {
-    final ok = _userCtrl.text == 'usuario' && _passCtrl.text == 'senha123';
+    final ok = _isAdmin || _isUser;
     setState(() => _status = ok ? LoginStatus.success : LoginStatus.error);
 
     await Future.delayed(const Duration(milliseconds: 600));
+
+    if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      final route = _isAdmin ? '/admin' : '/home';
+      Navigator.of(context).pushReplacementNamed(route);
     } else {
       await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
       setState(() => _status = LoginStatus.none);
     }
   }
@@ -44,13 +52,11 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Formulário
             SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // **Aqui usamos o logo animado em vez do texto**
                   const AnimatedLogoImage(height: 55),
                   const SizedBox(height: 32),
                   TextFormField(
@@ -66,6 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).nextFocus(),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -82,6 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
+                    onFieldSubmitted: (_) => _attemptLogin(),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -109,7 +119,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            // Feedback de sucesso/erro
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 600),
               switchInCurve: Curves.easeOutBack,

@@ -1,6 +1,7 @@
 // lib/pages/points_page.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:my_flutter_app/widgets/logout_button.dart';
 
 import '../widgets/background_scaffold.dart';
 import '../widgets/animated_logo_image.dart';
@@ -194,6 +195,9 @@ class _PointsPageState extends State<PointsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
               AnimatedLogoImage(height: 48),
+              Spacer(),
+              LogoutButton(),
+              SizedBox(width: 8),
               CircleAvatar(
                 radius: 24,
                 backgroundImage: AssetImage('assets/images/avatar.png'),
